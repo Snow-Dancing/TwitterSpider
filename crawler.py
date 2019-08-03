@@ -13,13 +13,14 @@ import datetime
 
 from id_collection import create_api, create_user_agent
 
+
 class TwitterCrawler(object):
     def __init__(self, since_id=None, clean_dir=False):
         # TODO: change the proxy value by your own proxy
         self.proxy = ''
         # TODO: change the QUERY value by your own QUERY
         self.QUERY = ''
-		
+
         self.result_text_dir = './temp_data'
         self.picture_dir = './pictures'
         self.all_result_file = os.path.join(self.result_text_dir, 'all_result.json')
@@ -45,13 +46,14 @@ class TwitterCrawler(object):
             os.mkdir(self.picture_dir)
         if not os.path.isdir(self.result_text_dir):
             os.mkdir(self.result_text_dir)
-        """Update status"""
+        """Update status, if since_id is not None, it is considered updating status"""
         if since_id:
             if os.path.isfile(self.updating_all_result_file):
                 os.remove(self.updating_all_result_file)
             self.all_result_file = self.updating_all_result_file
 
     def _clean_dir(self):
+        """ func:   remove tem_data dir and picture dir"""
         if os.path.isdir(self.picture_dir):
             shutil.rmtree(self.picture_dir)
         if os.path.isdir(self.result_text_dir):
@@ -59,6 +61,9 @@ class TwitterCrawler(object):
         self.log_info("Successfully cleaned temp_data dir and picture dir!")
 
     def _save_all_result(self, search_results):
+        """ func:   save all results of one api.search()
+            :arg    search_results is the return of api.search()
+        """
         with open(self.all_result_file, 'a', encoding='utf8') as f:
             for i, one_tweet in enumerate(search_results):
                 json.dump(one_tweet._json, f, ensure_ascii=False)
@@ -67,6 +72,12 @@ class TwitterCrawler(object):
         self.log_info('Total downloaded {:^6d} tweets'.format(self.tweet_downloaded_count))
 
     def _download_picture(self, url, picture_id, picture_dir):
+        """ func:   download a picture of a tweet
+            :arg    url is the picture link
+                    picture_id is the tweet id
+                    picture_dir is the dir storing all of the downloaded pictures
+            :return if picture is successfully downloaded, return True; else, return False
+        """
         proxies = {'http': self.proxy, 'https': self.proxy}
         filename = os.path.join(picture_dir, str(picture_id) + url[-4:])
         try:
@@ -80,7 +91,9 @@ class TwitterCrawler(object):
             return False
 
     def _save_one_refined_tweet(self, tweet):
-        """Save the id, full_text and picture_url of one tweet having at least one picture"""
+        """ func:   Save the id, full_text and picture_url of one tweet having at least one picture
+            :arg:   tweet is the information of one tweet, a json dictionary
+        """
         tweet_saved_dict = {}
         tweet_saved_dict['id'] = tweet['id']
         tweet_saved_dict['text'] = tweet['full_text']
@@ -96,13 +109,13 @@ class TwitterCrawler(object):
                 self.working_threads -= 1
             else:
                 with open(self.picture_downloaded_error_file, 'a', encoding='utf8') as ef:
-                        json.dump(tweet_saved_dict, ef, ensure_ascii=False)
-                        ef.write('\n')
+                    json.dump(tweet_saved_dict, ef, ensure_ascii=False)
+                    ef.write('\n')
         except Exception as e:
             self.log_info("Some error: %s" % str(e))
 
     def _refine_results(self):
-        """Extract all tweets having at least one picture, save their full_text and download pictures"""
+        """ func:   Extract all tweets having at least one picture, save their full_text and download pictures"""
         self.log_info("Start extracting tweets having at least one picture...")
         refined_tweets = []
         if not os.path.isfile(self.all_result_file):
